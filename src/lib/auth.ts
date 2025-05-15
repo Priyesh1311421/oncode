@@ -10,25 +10,37 @@ import CredentialsProvider from "next-auth/providers/credentials";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
-    GithubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-    }),
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
+    // Only add OAuth providers if environment variables are defined
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      })
+    ] : []),
+    
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? [
+      GithubProvider({
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      })
+    ] : []),
+    
+    // Email provider is optional as well
+    ...(process.env.EMAIL_SERVER_HOST && process.env.EMAIL_SERVER_USER ? [
+      EmailProvider({
+        server: {
+          host: process.env.EMAIL_SERVER_HOST,
+          port: Number(process.env.EMAIL_SERVER_PORT || 587),
+          auth: {
+            user: process.env.EMAIL_SERVER_USER,
+            pass: process.env.EMAIL_SERVER_PASSWORD || '',
+          },
         },
-      },
-      from: process.env.EMAIL_FROM,
-    }),
+        from: process.env.EMAIL_FROM || 'noreply@oncode.dev',
+      })
+    ] : []),
+    
+    // Always include credentials provider
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -94,6 +106,5 @@ export const authOptions: NextAuthOptions = {
     // newUser: '/auth/new-user' // New users will be directed here on first sign in (leave the property out to disable)
   },
   secret: process.env.NEXTAUTH_SECRET,
-  // Enable debug messages in the console if you are having problems
-  // debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === 'development',
 };
